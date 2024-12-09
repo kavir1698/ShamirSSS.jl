@@ -1,9 +1,20 @@
 name = "ShamirSSS"
+uuid = "8837512e-1bcb-4217-bddb-6be6cbcc2de3"
+description = "A package for Shamir's Secret Sharing Scheme in Julia"
+repository = "https://github.com/kavir1698/ShamirSSS.jl.git"
 authors = ["Farhad Vahdati <arv.kavir@gmail.com>"]
 version = "0.1.0"
+keywords = ["Shamir", "Secret Sharing", "Cryptography"]
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
 Primes = "27ebfcd6-29c5-5fa9-bf4b-fb8fc14df3ae"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+
+[compat]
+julia = "1.11"  # Specify the Julia version compatibility
+Base64 = "1.11"
+Primes = "0.5.6"
+Random = "1.11"
+SHA = "0.7.0"
