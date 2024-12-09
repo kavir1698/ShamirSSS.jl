@@ -1,4 +1,6 @@
 """
+    split_secret(secret::String, n::Int, t::Int; prime_bits::Int=4096)::Vector{String}
+
 Split a secret string into n shares, with a threshold of t shares required for reconstruction.
 
 Parameters:
@@ -19,7 +21,7 @@ function split_secret(secret::String, n::Int, t::Int; prime_bits::Int=4096)::Vec
   prime_bits = max(secret_bits + 128, prime_bits)
 
   # @info "Generating a safe prime number ..."
-  # p = generate_safe_prime(prime_bits)
+  # p = generate_safe_prime(prime_bits) # not necessary for SSSS
   p = generate_prime(prime_bits)
   @assert secret_number < p "Secret is too large for the given prime size"
 
@@ -30,6 +32,8 @@ function split_secret(secret::String, n::Int, t::Int; prime_bits::Int=4096)::Vec
 end
 
 """
+    reconstruct_secret(shares::Vector{String})::String
+
 Reconstruct the secret string from a set of shares.
 
 Parameters:
@@ -41,7 +45,6 @@ Returns:
 function reconstruct_secret(shares::Vector{String})::String
   deserialized_shares = [deserialize_share(share) for share in shares]
 
-  # Get the prime modulus from the first share
   p = deserialized_shares[1][1].field.p
 
   # Ensure all shares use the same prime modulus
@@ -49,7 +52,6 @@ function reconstruct_secret(shares::Vector{String})::String
     @assert x.field.p == p && y.field.p == p "All shares must use the same prime modulus"
   end
 
-  # Create a new FiniteField with the common prime modulus
   field = FiniteField(p)
 
   # Convert all shares to use the common field
