@@ -39,7 +39,7 @@ This will generate a vector of `n` shares, each represented as a serialized stri
 To reconstruct the original secret string from a set of shares, use the `reconstruct_secret` function:
 
 ```julia
-reconstructed_secret = reconstruct_secret(shares)
+reconstructed_secret = reconstruct_secret(shares[[5,2,3]])
 ```
 
 This will return the original secret string.
