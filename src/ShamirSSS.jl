@@ -1,7 +1,7 @@
 module ShamirSSS
 
 export split_secret, reconstruct_secret
-export ⊕, ⊖, ⊗
+export ⊕, ⊖, ⊗, /
 
 using Random
 using Primes
