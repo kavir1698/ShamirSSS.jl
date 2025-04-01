@@ -55,9 +55,20 @@ end
 
 # Cryptographically secure random number generation
 function secure_rand(rng::AbstractRNG, max::BigInt)
-  bytes_needed = ceil(Int, log2(max)) + 1
-  random_bytes = rand(rng, UInt8, bytes_needed)
-  return mod(parse(BigInt, bytes2hex(random_bytes), base=16), max)
+  if max <= 0
+    throw(ArgumentError("max must be positive"))
+  end
+
+  bits_needed = ceil(Int, log2(max))
+  bytes_needed = ceil(Int, Base.:/(bits_needed, 8))
+
+  while true
+    random_bytes = rand(rng, UInt8, bytes_needed)
+    value = parse(BigInt, bytes2hex(random_bytes), base=16)
+    if value < max
+      return value
+    end
+  end
 end
 
 # Generate a random polynomial of degree t-1
@@ -86,6 +97,8 @@ function generate_shares(rng::AbstractRNG, secret::BigInt, n::Int, t::Int, p::Bi
   @assert t <= n "Threshold t must be less than or equal to the number of shares n"
   @assert t >= 2 "Threshold t must be at least 2"
   @assert secret < p "Secret must be smaller than the prime modulus"
+  @assert isprime(p) "Modulus must be prime"
+  @assert p > max(256, n) "Prime modulus too small for security"
 
   field = FiniteField(p)
   secret_elem = FieldElement(secret, field)
@@ -93,6 +106,7 @@ function generate_shares(rng::AbstractRNG, secret::BigInt, n::Int, t::Int, p::Bi
   shares = Vector{Tuple{FieldElement,FieldElement}}(undef, n)
 
   for i in 1:n
+    # Start from x=1 to avoid x=0 which would reveal the secret
     x = FieldElement(BigInt(i), field)
     y = evaluate_polynomial(coeffs, x)
     shares[i] = (x, y)
