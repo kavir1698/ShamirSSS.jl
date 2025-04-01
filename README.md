@@ -13,7 +13,7 @@ Shamir's Secret Sharing Scheme is a cryptographic technique for securely sharing
 
 To use this package, add the following line to your Julia REPL:
 ```julia
-Pkg.add("https://github.com/kavir1698/ShamirSSS.jl.git")
+Pkg.add("ShamirSSS")
 ```
 
 ## Usage
