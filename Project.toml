@@ -4,7 +4,7 @@ keywords = ["Shamir", "Secret Sharing", "Cryptography"]
 authors = ["Farhad Vahdati <arv.kavir@gmail.com>"]
 description = "A package for Shamir's Secret Sharing Scheme in Julia"
 repository = "https://github.com/kavir1698/ShamirSSS.jl.git"
-version = "0.1.0"
+version = "0.2.0"
 
 [deps]
 Base64 = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
