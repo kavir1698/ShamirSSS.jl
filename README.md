@@ -116,3 +116,8 @@ one with leading NUL bytes or astral-plane characters, round-trips exactly.
 * Securely sharing a password among multiple team members
 * Distributing a cryptographic key among multiple servers
 * Creating a backup of sensitive data using multiple shares
+
+## Releasing
+
+This package is registered in the Julia General registry. To publish a new
+version, see [RELEASE.md](RELEASE.md).

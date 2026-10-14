@@ -1,0 +1,69 @@
+name: Release
+
+# Manual, on-demand release. Run it from the Actions tab, or:
+#
+#   gh workflow run release.yml -f version=minor
+#
+# It bumps `version` in Project.toml, commits the change, and pushes it. If the
+# optional REGISTRATOR_TOKEN secret is configured, it then comments
+# `@JuliaRegistrator register` on the new commit to register the release in the
+# General registry.
+#
+# After Registrator's pull request is merged by AutoMerge, the TagBot workflow
+# (.github/workflows/TagBot.yml) creates the `vX.Y.Z` git tag and GitHub release.
+#
+# Setup and rationale: see RELEASE.md.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Exact version (e.g. 0.4.0) or a component to bump: major, minor, or patch"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+# Serialize releases so two runs cannot race on Project.toml.
+concurrency:
+  group: release
+
+env:
+  # A personal access token (repo owner or a collaborator) used only to post the
+  # Registrator trigger comment. If unset, the workflow still bumps and pushes
+  # the version and reminds you to trigger registration yourself.
+  REGISTRATOR_TOKEN: ${{ secrets.REGISTRATOR_TOKEN }}
+
+jobs:
+  release:
+    name: Bump version and trigger Registrator
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Bump version in Project.toml
+        id: bump
+        run: |
+          version="$(python3 .github/bump_version.py "${{ inputs.version }}")"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push the version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Project.toml
+          git commit -m "Bump version to ${{ steps.bump.outputs.version }}"
+          git push
+
+      - name: Trigger Registrator
+        if: env.REGISTRATOR_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ secrets.REGISTRATOR_TOKEN }}
+        run: gh api "repos/$GITHUB_REPOSITORY/comments" -f body="@JuliaRegistrator register" -f commit_id="$(git rev-parse HEAD)"
+
+      - name: Remind to trigger registration manually
+        if: env.REGISTRATOR_TOKEN == ''
+        run: |
+          echo "::notice title=Trigger registration::No REGISTRATOR_TOKEN secret is set, so the bot could not post the trigger comment. Comment '@JuliaRegistrator register' on the pushed commit (or register via https://juliahub.com) to finish the release. See RELEASE.md."

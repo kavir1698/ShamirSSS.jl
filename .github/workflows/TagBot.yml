@@ -1,0 +1,34 @@
+name: TagBot
+
+# Creates the `vX.Y.Z` git tag and GitHub release for a version once that
+# version has been merged into the General registry. The General registry
+# triggers this workflow by posting a comment as the "JuliaTagBot" user, so no
+# manual tagging is needed for normal releases.
+#
+# It can also be run manually from the Actions tab (workflow_dispatch); this is
+# the quickest way to backfill tags/releases for versions that were registered
+# before this workflow existed.
+#
+# Note: intentionally no explicit `permissions:` block here. TagBot should use
+# the repository's default workflow permissions.
+on:
+  issue_comment:
+    types:
+      - created
+  workflow_dispatch:
+
+jobs:
+  TagBot:
+    if: github.event_name == 'workflow_dispatch' || github.actor == 'JuliaTagBot'
+    # `ubuntu-latest` is required: TagBot runs in a container and the
+    # `ubuntu-slim` runner does not support containers.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: JuliaRegistries/TagBot@ffef3282bcacf1055e4d621a5c010959dfbe59ff # v1.25.13
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Uncomment `ssh` (and add a DOCUMENTER_KEY repository secret holding
+          # an SSH deploy key with write access) if tags must trigger other
+          # workflows, e.g. a documentation build, or if a release commit
+          # modifies files under .github/workflows/.
+          # ssh: ${{ secrets.DOCUMENTER_KEY }}
