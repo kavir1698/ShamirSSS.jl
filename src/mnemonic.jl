@@ -3,70 +3,6 @@ const BIP39_WORD_INDEX = Dict(word => i - 1 for (i, word) in enumerate(BIP39_WOR
 const MNEMONIC_CHECKSUM_BYTES = 4
 const MNEMONIC_LENGTH_BYTES = 2
 
-function number_to_bytes(n::BigInt)::Vector{UInt8}
-  n < 0 && throw(ArgumentError("Cannot encode a negative number"))
-  n == 0 && return UInt8[0x00]
-  bytes = UInt8[]
-  while n > 0
-    push!(bytes, UInt8(n & 0xff))
-    n >>= 8
-  end
-  return reverse(bytes)
-end
-
-function bytes_to_number(bytes::AbstractVector{UInt8})::BigInt
-  n = BigInt(0)
-  for b in bytes
-    n = (n << 8) | b
-  end
-  return n
-end
-
-function share_to_bytes(share::Tuple{FieldElement,FieldElement})::Vector{UInt8}
-  x, y = share
-  components = (number_to_bytes(x.value), number_to_bytes(y.value), number_to_bytes(x.field.p))
-  for component in components
-    length(component) <= typemax(UInt16) ||
-      throw(ArgumentError("Share component too large for mnemonic encoding"))
-  end
-
-  buf = UInt8[]
-  for component in components
-    push!(buf, UInt8(length(component) >> 8), UInt8(length(component) & 0xff))
-    append!(buf, component)
-  end
-  return buf
-end
-
-function bytes_to_share(data::AbstractVector{UInt8})
-  length(data) >= 2 * 3 || throw(ArgumentError("Malformed share payload"))
-  pos = 1
-
-  xlen = (Int(data[pos]) << 8) | Int(data[pos+1]); pos += 2
-  pos + xlen - 1 <= length(data) || throw(ArgumentError("Malformed share payload"))
-  xb = data[pos:pos+xlen-1]; pos += xlen
-
-  pos + 1 <= length(data) || throw(ArgumentError("Malformed share payload"))
-  ylen = (Int(data[pos]) << 8) | Int(data[pos+1]); pos += 2
-  pos + ylen - 1 <= length(data) || throw(ArgumentError("Malformed share payload"))
-  yb = data[pos:pos+ylen-1]; pos += ylen
-
-  pos + 1 <= length(data) || throw(ArgumentError("Malformed share payload"))
-  plen = (Int(data[pos]) << 8) | Int(data[pos+1]); pos += 2
-  pos + plen - 1 <= length(data) || throw(ArgumentError("Malformed share payload"))
-  pb = data[pos:pos+plen-1]; pos += plen
-
-  pos - 1 == length(data) || throw(ArgumentError("Trailing bytes in share payload"))
-
-  p = bytes_to_number(pb)
-  p > 1 || throw(ArgumentError("Invalid modulus in share payload"))
-  field = FiniteField(p)
-  return (
-    FieldElement(bytes_to_number(xb), field),
-    FieldElement(bytes_to_number(yb), field),
-  )
-end
-
 function bytes_to_mnemonic_words(buf::AbstractVector{UInt8})::Vector{String}
   length(buf) <= typemax(UInt16) ||
     throw(ArgumentError("Payload too large for mnemonic encoding"))
@@ -145,21 +81,29 @@ function mnemonic_words_to_bytes(words::AbstractVector{<:AbstractString})::Vecto
 end
 
 """
-    share_to_mnemonic(share)::String
+    share_to_mnemonic(share; t, set_id=(0x00, 0x00, 0x00, 0x00))::String
 
 Encode a `(x, y)` share as a BIP-39-style mnemonic phrase. The 11-bit word
 encoding uses the standard BIP-39 English wordlist and appends a SHA-256
 checksum so transcription errors are detected on decoding.
+
+`t` (the threshold) is required and `set_id` is copied into the share header so
+that [`reconstruct_secret`](@ref) can reject mismatched or insufficient share
+sets.
 """
-function share_to_mnemonic(share::Tuple{FieldElement,FieldElement})::String
-  return join(bytes_to_mnemonic_words(share_to_bytes(share)), " ")
+function share_to_mnemonic(
+  share::Tuple{FieldElement,FieldElement};
+  t::Integer,
+  set_id::NTuple{4,UInt8}=SHARE_DEFAULT_SET_ID,
+)::String
+  return join(bytes_to_mnemonic_words(share_to_bytes(share; t=t, set_id=set_id)), " ")
 end
 
 """
     mnemonic_to_share(mnemonic::AbstractString)
 
 Decode a mnemonic phrase produced by [`share_to_mnemonic`](@ref) back into a
-`(x, y)` share. Throws if any word is unknown or the checksum does not match.
+[`Share`](@ref). Throws if any word is unknown or the checksum does not match.
 """
 function mnemonic_to_share(mnemonic::AbstractString)
   words = split(strip(mnemonic))

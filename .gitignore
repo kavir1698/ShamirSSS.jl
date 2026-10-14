@@ -1,0 +1,12 @@
+# Julia
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+/docs/build/
+/docs/site/
+
+# Editors / OS
+.DS_Store
+*.swp
+.idea/
+.vscode/

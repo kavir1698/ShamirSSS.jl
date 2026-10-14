@@ -8,7 +8,6 @@
   # Define a finite field with a prime modulus
   p = 7  # Example prime modulus
   field = ShamirSSS.FiniteField(p)
-  Base.:(==)(a::ShamirSSS.FiniteField, b::ShamirSSS.FiniteField) = a.p == b.p
 
   @testset "FieldElement creation and reduction" begin
     elem1 = ShamirSSS.FieldElement(10, field)
@@ -49,9 +48,9 @@
     a = field_element(3, p)
     b = field_element(5, 11)
 
-    @test_throws AssertionError ShamirSSS.var"⊕"(a, b)  # Addition should fail
-    @test_throws AssertionError ShamirSSS.var"⊖"(a, b)  # Subtraction should fail
-    @test_throws AssertionError ShamirSSS.var"⊗"(a, b)  # Multiplication should fail
+    @test_throws ArgumentError ShamirSSS.var"⊕"(a, b)  # Addition should fail
+    @test_throws ArgumentError ShamirSSS.var"⊖"(a, b)  # Subtraction should fail
+    @test_throws ArgumentError ShamirSSS.var"⊗"(a, b)  # Multiplication should fail
   end
 
   # Test edge cases
@@ -114,7 +113,7 @@ end
 
   # Test division by zero
   zero = ShamirSSS.FieldElement(0, field)
-  @test_throws AssertionError ShamirSSS.var"/"(a, zero)
+  @test_throws DomainError ShamirSSS.var"/"(a, zero)
 end
 
 @testset "Equality (==)" begin

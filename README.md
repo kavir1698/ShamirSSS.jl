@@ -43,10 +43,10 @@ transfer than raw bytes:
 
 Pass `format=:base64` to get the compact base64 encoding instead.
 
-> Note: a share's mnemonic length scales with `prime_bits`. The default 4096-bit
-> modulus produces very long phrases; use a smaller modulus (for example
-> `prime_bits=256`) when you want short, easily transferable shares. The
-> modulus only needs to be larger than the secret.
+> Note: a share's mnemonic length scales with `prime_bits`, which defaults to
+> `256`. The modulus only needs to be larger than the secret, so it is raised
+> automatically for larger secrets; increasing it does not make the scheme more
+> secure, it only makes the shares longer.
 
 ### Reconstructing a Secret
 
@@ -63,7 +63,7 @@ This will return the original secret string.
 * `secret`: the secret string to be split (required)
 * `n`: the number of shares to generate (required)
 * `t`: the minimum number of shares required to reconstruct the secret (required)
-* `prime_bits`: the number of bits for the prime modulus (optional, default: 4096)
+* `prime_bits`: the minimum number of bits for the prime modulus (optional, default: 256; raised automatically when the secret is larger)
 * `format`: the share encoding, either `:mnemonic` (default) or `:base64` (optional)
 
 ## Returns
@@ -74,8 +74,42 @@ This will return the original secret string.
 `reconstruct_secret` auto-detects whether each supplied share is a mnemonic
 phrase or a base64 string. The individual `share_to_mnemonic` and
 `mnemonic_to_share` functions convert a single `(x, y)` share to and from a
-mnemonic phrase; the mnemonic includes a checksum, so a mistyped word is
-rejected on decoding.
+mnemonic phrase.
+
+## Security notes
+
+Shamir's scheme provides **secrecy, but not authenticity**. This means:
+
+* Any `t` (or more) correct shares reconstruct the secret exactly.
+* Fewer than `t` shares reveal **nothing** about the secret.
+* The scheme does **not** detect a deliberate forgery: an attacker who can
+  modify shares can cause a wrong secret to be reconstructed.
+
+The format mitigates the common *accidental* failure modes, but does not
+replace authentication:
+
+* Every share header stores the threshold `t`, so `reconstruct_secret` rejects
+  a set that contains fewer than `t` shares instead of silently interpolating a
+  garbage value.
+* Every share from one `split_secret` call carries a random per-split
+  identifier. Mixing shares from different splits is rejected before
+  interpolation.
+* Both share formats carry a SHA-256 checksum, so an accidentally corrupted
+  share (mnemonic or base64) is rejected when decoded. The self-encoding used
+  for the secret itself also rejects values that are not valid encodings.
+* `bytes_to_share` / `mnemonic_to_share` verify that the share's modulus is
+  prime, and the modulus size is bounded to keep decoding of untrusted input
+  cheap.
+* Shares produced by version 0.3.0 and earlier are still decoded on a
+  best-effort basis, but they carry no threshold or set information and their
+  legacy secret encoding cannot represent non-Latin1 characters.
+
+If you need to detect tampering, authenticate the shares independently (for
+example, sign them or distribute them over an authenticated channel), and verify
+the reconstructed secret against a known value you trust.
+
+The secret is encoded as its raw UTF-8 bytes, so any Unicode string, including
+one with leading NUL bytes or astral-plane characters, round-trips exactly.
 
 ## Example Use Cases
 

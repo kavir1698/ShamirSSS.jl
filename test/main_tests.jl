@@ -10,7 +10,7 @@
     @test secret_bits <= prime_bits - 128
 
     # Generate a random prime
-    p = ShamirSSS.generate_safe_prime(prime_bits)
+    p = ShamirSSS.generate_prime(prime_bits)
 
     n = 5  # Total number of shares
     t = 3  # Threshold (minimum number of shares needed to reconstruct)
@@ -22,9 +22,11 @@
     shares = ShamirSSS.generate_shares(rng, secret, n, t, p)
 
     # Serialize and deserialize a share
-    serialized_share = ShamirSSS.serialize_share(shares[1])
+    serialized_share = ShamirSSS.serialize_share(shares[1]; t=t)
     deserialized_share = ShamirSSS.deserialize_share(serialized_share)
-    @test shares[1][2].value == deserialized_share[2].value
+    @test shares[1][2].value == deserialized_share.y.value
+    @test shares[1][1].value == deserialized_share.x.value
+    @test deserialized_share.x.field.p == p
 
     reconstructed_secret = ShamirSSS.reconstruct_secret_num(shares)
     @test reconstructed_secret.value == secret
